@@ -20,10 +20,24 @@ application = tornado.web.Application(
 
 PORT = 22222
 
-DBINFO = dict(
-    dbhost = '127.0.0.1',
-    dbuser = 'root',
-    dbpasswd = '',
-    dbport = 3306,
-    dbdatabase = 'devops'
-)
+debug = False
+
+if not debug:
+    DBINFO = dict(
+        dbhost = '127.0.0.1',
+        dbuser = 'root',
+        dbpasswd = '',
+        dbport = 3306,
+        dbname = 'devops'
+    )
+else:
+    DBINFO = dict(
+        dbhost = '10.0.0.1',
+        dbuser = 'root',
+        dbpasswd = '',
+        dbport = 3306,
+        dbname = 'devops'
+    )
+
+db_config = 'mysql+mysqldb://%s:%s@%s:%s/%s?charset=utf8' % (DBINFO['dbuse'], DBINFO['dbpasswd'], DBINFO['dbhost'], DBINFO['dbport'], DBINFO['dbname'])
+
