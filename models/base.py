@@ -17,17 +17,20 @@ from __builtin__ import int
 # sys.path.insert(0,os.path.dirname(os.path.dirname(__file__)))
 sys.path.append(os.path.abspath(os.path.dirname(__file__) + '/' + '..'))
 import settings
+from models.models import DB_Session
+
 class BaseHandler(tornado.web.RequestHandler):
     def initialize(self):
         self.classname = self.__class__.__name__
-        self.user_header = self.get_secure_cookie('user', None)
+        self.user_header = self.get_secure_cookie
+        self.session = DB_Session()
 
     def get_current_user(self):
         return self.get_secure_cookie('user')
 
     @property
     def db(self):
-        db = torndb.Connection(settings.DBINFO['dbhost'], settings.DBINFO['dbdatabase'],
+        db = torndb.Connection(settings.DBINFO['dbhost'], settings.DBINFO['dbname'],
                                settings.DBINFO['dbuser'], settings.DBINFO['dbpasswd'])
 
         return db
@@ -44,6 +47,9 @@ class BaseHandler(tornado.web.RequestHandler):
                 os.waitpid(process.pid)
                 return "False error timeout"
         return process.stdout.read()
+        
+    def on_finish(self):
+        self.session.close()
 
 
 
