@@ -1,0 +1,60 @@
+__author__ = 'Administrator'
+from base import *
+from tornado.gen import *
+from tornado.web import *
+from tornado.httpclient import *
+import tornado.gen
+
+#Asynchronous方式
+class AsyncHandler(BaseHandler):
+    @asynchronous
+    def get(self):
+        http_client = AsyncHTTPClient()
+        http_client.fetch("http://example.com",
+                          callback=self.on_fetch)
+
+    def on_fetch(self, response):
+        do_something_with_response(response)
+        self.render("template.html")
+        self.finish()
+
+#FUTURE方式
+class GenAsyncHandler(RequestHandler):
+    @asynchronous
+    @coroutine
+    def get(self):
+        http_client = AsyncHTTPClient()
+        response = yield http_client.fetch("http://example.com")
+        do_something_with_response(response)
+        self.render("template.html")
+
+#Task 方式
+class GenAsyncHandler2(RequestHandler):
+    @asynchronous
+    @coroutine
+    def get(self):
+        http_client = AsyncHTTPClient()
+        http_client.fetch("http://example.com", callback=(yield tornado.gen.Callback("key"))) #1
+        response = yield tornado.gen.Wait("key")                                                 #2
+        do_something_with_response(response)
+        self.render("template.html")
+
+#Task改良版
+@gen.coroutine
+def get(self):
+     http_client = AsyncHTTPClient()
+     response = yield gen.Task(AsyncHTTPClient().fetch, "http://example.com")#替换上面的#1和#2
+     do_something_with_response(response)
+     self.render("template.html")
+
+def do_something_with_response():
+    pass
+
+#@gen.coroutine和yield都是配对使用的
+
+#一次异步多个请求，适用于Future和Task版， 以下是Future版本
+@coroutine
+def get(self):
+    http_client = AsyncHTTPClient()
+    response1, response2 = yield [http_client.fetch('url1'),
+                                  http_client.fetch('url2')]
