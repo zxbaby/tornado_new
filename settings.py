@@ -39,5 +39,9 @@ else:
         dbname = 'devops'
     )
 
+<<<<<<< HEAD
 db_config = 'mysql+mysqldb://%s:%s@%s:%s/%s?charset=utf8' % (DBINFO['dbuser'], DBINFO['dbpasswd'], DBINFO['dbhost'], DBINFO['dbport'], DBINFO['dbname'])
+=======
+db_config = 'mysql+mysqldb://%s:%s@%s:%s/%s?charset=utf8' % (DBINFO['dbuse'], DBINFO['dbpasswd'], DBINFO['dbhost'], DBINFO['dbport'], DBINFO['dbname'])
+>>>>>>> 87319db5d0b5ee11cb1dcfe00c116d092b99fb95
 

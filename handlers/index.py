@@ -1,6 +1,7 @@
 __author__ = 'Administrator'
 
 from base import BaseHandler
+<<<<<<< HEAD
 import tornado.escape
 
 
@@ -13,6 +14,12 @@ class MainHandler(BaseHandler):
         self.render('index.html',name=name)
 
 
+=======
+
+class MainHandler(BaseHandler):
+    def get(self):
+        self.render('index.html')
+>>>>>>> 87319db5d0b5ee11cb1dcfe00c116d092b99fb95
 
 class LoveHandler(BaseHandler):
     def get(self):
