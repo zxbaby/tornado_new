@@ -1,0 +1,189 @@
+__author__ = 'Administrator'
+from base import *
+from tornado.gen import *
+from tornado.web import *
+from tornado.httpclient import *
+import tornado.gen
+import tornado.web
+from tornado.concurrent import run_on_executor
+# 这个并发库在python3自带在python2需要安装sudo pip install futures
+from concurrent.futures import ThreadPoolExecutor
+
+#Asynchronous方式
+class AsyncHandler(BaseHandler):
+    @asynchronous
+    def get(self):
+        http_client = AsyncHTTPClient()
+        http_client.fetch("http://example.com",
+                          callback=self.on_fetch)
+
+    def on_fetch(self, response):
+        do_something_with_response(response)
+        self.render("template.html")
+        self.finish()
+
+#FUTURE方式
+class GenAsyncHandler(RequestHandler):
+    @asynchronous
+    @coroutine
+    def get(self):
+        http_client = AsyncHTTPClient()
+        response = yield http_client.fetch("http://example.com")
+        do_something_with_response(response)
+        self.render("template.html")
+
+#Task 方式
+class GenAsyncHandler2(RequestHandler):
+    @asynchronous
+    @coroutine
+    def get(self):
+        http_client = AsyncHTTPClient()
+        http_client.fetch("http://example.com", callback=(yield tornado.gen.Callback("key"))) #1
+        response = yield tornado.gen.Wait("key")                                                 #2
+        do_something_with_response(response)
+        self.render("template.html")
+
+#Task改良版
+@gen.coroutine
+def get(self):
+     http_client = AsyncHTTPClient()
+     response = yield gen.Task(AsyncHTTPClient().fetch, "http://example.com")#替换上面的#1和#2
+     do_something_with_response(response)
+     self.render("template.html")
+
+def do_something_with_response():
+    pass
+
+#@gen.coroutine和yield都是配对使用的
+
+#一次异步多个请求，适用于Future和Task版， 以下是Future版本
+@coroutine
+def get(self):
+    http_client = AsyncHTTPClient()
+    response1, response2 = yield [http_client.fetch('url1'),
+                                  http_client.fetch('url2')]
+
+#examples
+#future 方式
+class SleepHandler(tornado.web.RequestHandler):
+    @tornado.web.asynchronous
+    @tornado.gen.coroutine
+    def get(self):
+        yield tornado.gen.Task(tornado.ioloop.IOLoop.instance().add_timeout, time.time() + 5)
+        self.write("when i sleep 5s")
+ 
+ 
+class JustNowHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.write("i hope just now see you")
+        
+#callback回调方式
+class SleepHandler(tornado.web.RequestHandler):
+    @tornado.web.asynchronous
+    def get(self):
+        tornado.ioloop.IOLoop.instance().add_timeout(time.time() + 5, callback=self.on_response)
+    def on_response(self):
+        self.write("when i sleep 5s")
+        self.finish()
+        
+#tornado-celery tcelery方式实现异步
+
+#使用tornado.concurrent.run_on_executor,装饰同步函数，可以把同步阻塞函数变成异步函数方式
+class SleepHandler(tornado.web.RequestHandler):
+    executor = ThreadPoolExecutor(2)
+    @tornado.web.asynchronous
+    @tornado.gen.coroutine
+    def get(self):
+        # 假如你执行的异步会返回值被继续调用可以这样(只是为了演示),否则直接yield就行
+        res = yield self.sleep()
+        self.write("when i sleep %s" % res)
+        self.finish()
+ 
+    @run_on_executor
+    def sleep(self):
+        time.sleep(5)
+        return 5
+ 
+class JustNowHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.write("i hope just now see you")
+        
+
+#2种新的写法
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial, wraps
+import time
+ 
+import tornado.ioloop
+import tornado.web
+ 
+from tornado.options import define, options
+define("port", default=8000, help="run on the given port", type=int)
+ 
+EXECUTOR = ThreadPoolExecutor(max_workers=4)
+ 
+ 
+def unblock(f):
+ 
+    @tornado.web.asynchronous
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        self = args[0]
+ 
+        def callback(future):
+            self.write(future.result())
+            self.finish()
+ 
+        EXECUTOR.submit(
+            partial(f, *args, **kwargs)
+        ).add_done_callback(
+            lambda future: tornado.ioloop.IOLoop.instance().add_callback(
+                partial(callback, future)))
+ 
+    return wrapper
+ 
+ 
+class JustNowHandler(tornado.web.RequestHandler):
+ 
+    def get(self):
+        self.write("i hope just now see you")
+ 
+ 
+class SleepHandler(tornado.web.RequestHandler):
+ 
+    @unblock
+    def get(self, n):
+        time.sleep(float(n))
+        return "Awake! %s" % time.time()
+ 
+ 
+class SleepAsyncHandler(tornado.web.RequestHandler):
+ 
+    @tornado.web.asynchronous
+    def get(self, n):
+ 
+        def callback(future):
+            self.write(future.result())
+            self.finish()
+ 
+        EXECUTOR.submit(
+            partial(self.get_, n)
+        ).add_done_callback(
+            lambda future: tornado.ioloop.IOLoop.instance().add_callback(
+                partial(callback, future)))
+ 
+    def get_(self, n):
+        time.sleep(float(n))
+        return "Awake! %s" % time.time()
+ 
+ 
+application = tornado.web.Application([
+    (r"/justnow", JustNowHandler),
+    (r"/sleep/(\d+)", SleepHandler),
+    (r"/sleep_async/(\d+)", SleepAsyncHandler),
+])
+ 
+ 
+if __name__ == "__main__":
+   application.listen(options.port)
+   tornado.ioloop.IOLoop.instance().start()
