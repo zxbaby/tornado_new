@@ -8,6 +8,8 @@ import redis
 import paramiko
 import os
 import random
+import uuid
+import base64
 
 #get logger
 #func
@@ -164,3 +166,10 @@ def get_unique_id():
     for i in xrange(0,9):
         s += chars[random.randint(0,ccount)]
     return s
+
+#get secret cookie
+def create_cookie_secret():
+    return base64.b64encode(uuid.uuid4().bytes + uuid.uuid4().bytes)
+    
+    
+    
