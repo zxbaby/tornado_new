@@ -10,6 +10,7 @@ import os
 import random
 import uuid
 import base64
+import hashlib
 
 #get logger
 #func
@@ -171,5 +172,9 @@ def get_unique_id():
 def create_cookie_secret():
     return base64.b64encode(uuid.uuid4().bytes + uuid.uuid4().bytes)
     
-    
+#gen encypt password
+def password_encypt(passwd):
+	h = hashlib.new("ripemd160")
+	h.update(passwd)
+	return h.hexdigest()
     
