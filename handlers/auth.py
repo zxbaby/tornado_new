@@ -43,4 +43,5 @@ class LoginHandler(BaseHandler):
 class LogoutHandler(BaseHandler):
     def get(self):
         self.clear_cookie("user")
-        self.redirect(self.get_argument("next", self.reverse_url("main")))
+        self.redirect(self.get_argument("next", '/'))
+        # self.redirect(self.get_argument("next", self.reverse_url("main")))
