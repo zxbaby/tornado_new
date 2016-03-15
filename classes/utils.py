@@ -7,6 +7,7 @@ import time
 import redis
 import paramiko
 import os
+import random
 
 #get logger
 #func
@@ -154,3 +155,12 @@ class Logger():
         result = stdout.read()
         s.close()
     return result
+
+#get unique id
+chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+ccount = len(chars)-1
+def get_unique_id():
+    s = ''
+    for i in xrange(0,9):
+        s += chars[random.randint(0,ccount)]
+    return s
